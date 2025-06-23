@@ -18,15 +18,17 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Only POST requests allowed' });
   }
 
-  const form = new formidable.IncomingForm({ multiples: false });
+  const form = new formidable.IncomingForm({ multiples: false, keepExtensions: true });
 
   form.parse(req, async (err, fields, files) => {
     if (err || !files.pdf) {
+      console.error("Formidable error or missing PDF:", err, files);
       return res.status(400).json({ error: 'PDF upload failed.' });
     }
 
     try {
-      const dataBuffer = fs.readFileSync(files.pdf.filepath);
+      const filePath = files.pdf[0]?.filepath || files.pdf.filepath;
+      const dataBuffer = fs.readFileSync(filePath);
       const pdfData = await pdfParse(dataBuffer);
 
       const prompt = `Create 5 flashcards from the following text:\n\n${pdfData.text}\n\nFormat:\nQ: ...\nA: ...`;
