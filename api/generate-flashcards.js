@@ -1,6 +1,5 @@
 import OpenAI from "openai";
 
-// ✅ Uses secret key from Vercel environment
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -17,25 +16,27 @@ export default async function handler(req, res) {
   }
 
   try {
-    const chatResponse = await openai.chat.completions.create({
+    const response = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
-      messages: [{
-        role: "user",
-        content: `Create 5 flashcards on the topic "${prompt}". Format like:\n\nQ: Question\nA: Answer`,
-      }],
+      messages: [
+        {
+          role: "user",
+          content: `Create 5 flashcards on the topic "${prompt}". Format like:\n\nQ: Question\nA: Answer`,
+        },
+      ],
       temperature: 0.7,
     });
 
-    const result = chatResponse.choices?.[0]?.message?.content;
+    const flashcards = response.choices?.[0]?.message?.content;
 
-    if (!result) {
-      return res.status(500).json({ error: "No flashcards returned by OpenAI." });
+    if (!flashcards) {
+      return res.status(500).json({ error: "No flashcards returned from OpenAI." });
     }
 
-    return res.status(200).json({ flashcards: result });
+    res.status(200).json({ flashcards });
 
-  } catch (err) {
-    console.error("❌ OpenAI Error:", err.message);
-    return res.status(500).json({ error: "Internal Server Error: " + err.message });
+  } catch (error) {
+    console.error("Server Error:", error.message);
+    res.status(500).json({ error: "Internal Server Error: " + error.message });
   }
 }
