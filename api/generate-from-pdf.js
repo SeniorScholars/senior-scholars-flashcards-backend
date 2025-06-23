@@ -39,6 +39,7 @@ export default async function handler(req, res) {
       const flashcards = completion.choices[0].message.content;
       return res.status(200).json({ flashcards });
     } catch (error) {
+      console.error('PDF processing error:', error);
       return res.status(500).json({ error: 'Something went wrong while processing the PDF.' });
     }
   });
