@@ -1,7 +1,8 @@
 {
   "dependencies": {
-  "formidable": "^3.5.0",
-  "pdf-parse": "^1.1.1",
-  "openai": "^4.0.0"
+    "formidable": "^2.1.1",
+    "fs": "^0.0.1-security",
+    "pdf-parse": "^1.1.1",
+    "openai": "^4.21.0"
   }
 }
