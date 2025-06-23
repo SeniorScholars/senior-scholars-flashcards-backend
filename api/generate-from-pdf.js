@@ -1,4 +1,4 @@
-import formidable from 'formidable';
+import { IncomingForm } from 'multiparty';
 import fs from 'fs';
 import pdfParse from 'pdf-parse';
 import OpenAI from 'openai';
@@ -14,39 +14,32 @@ const openai = new OpenAI({
 });
 
 export default async function handler(req, res) {
-  // ✅ Proper CORS Headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  // ✅ Handle Preflight Request
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ error: "Only POST allowed" });
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Only POST requests allowed' });
-  }
-
-  const form = new formidable.IncomingForm({ keepExtensions: true });
+  const form = new IncomingForm();
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
-      console.error("❌ Form parsing error:", err);
-      return res.status(400).json({ error: 'Form parse failed.' });
+      console.error("Form parse error:", err);
+      return res.status(400).json({ error: "Failed to parse form" });
     }
 
-    const uploaded = files.pdf?.[0] || files.pdf;
-    if (!uploaded) {
-      console.error("❌ No PDF file found.");
-      return res.status(400).json({ error: 'No PDF uploaded.' });
+    const file = files.pdf?.[0];
+    if (!file) {
+      console.error("No PDF found in request");
+      return res.status(400).json({ error: "No PDF uploaded" });
     }
 
     try {
-      const buffer = fs.readFileSync(uploaded.filepath);
+      const buffer = fs.readFileSync(file.path);
       const parsed = await pdfParse(buffer);
 
-      const prompt = `Create 5 flashcards from this content:\n\n${parsed.text}\n\nFormat:\nQ: ...\nA: ...`;
+      const prompt = `Create 5 flashcards from this text:\n\n${parsed.text}\n\nFormat:\nQ: ...\nA: ...`;
 
       const completion = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
@@ -55,9 +48,9 @@ export default async function handler(req, res) {
 
       const flashcards = completion.choices[0]?.message?.content;
       return res.status(200).json({ flashcards });
-    } catch (err) {
-      console.error("❌ Error during PDF parsing:", err);
-      return res.status(500).json({ error: 'Something went wrong during PDF processing.' });
+    } catch (e) {
+      console.error("PDF error:", e);
+      return res.status(500).json({ error: "Failed to process PDF." });
     }
   });
 }
