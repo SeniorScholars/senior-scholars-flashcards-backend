@@ -1,5 +1,3 @@
-// /api/generate-flashcards.js
-
 import OpenAI from "openai";
 
 const openai = new OpenAI({
@@ -11,14 +9,15 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Only POST requests allowed" });
   }
 
-  const { prompt } = req.body;
-
-  if (!prompt || prompt.trim() === "") {
-    return res.status(400).json({ error: "No prompt provided" });
-  }
-
   try {
-    const completion = await openai.chat.completions.create({
+    const { prompt } = req.body;
+
+    if (!prompt || typeof prompt !== "string") {
+      return res.status(400).json({ error: "Missing or invalid prompt." });
+    }
+
+    const chatResponse = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
       messages: [
         {
           role: "user",
@@ -28,25 +27,20 @@ Q: [Question 1]
 A: [Answer 1]
 
 Q: [Question 2]
-A: [Answer 2]
-
-Q: [Question 3]
-A: [Answer 3]
-
-Q: [Question 4]
-A: [Answer 4]
-
-Q: [Question 5]
-A: [Answer 5]`,
+A: [Answer 2]`,
         },
       ],
-      model: "gpt-3.5-turbo",
+      temperature: 0.7,
     });
 
-    const output = completion.choices[0].message.content;
-    res.status(200).json({ flashcards: output });
+    const answer = chatResponse.choices?.[0]?.message?.content;
+    if (!answer) {
+      return res.status(500).json({ error: "No content returned from OpenAI" });
+    }
+
+    res.status(200).json({ flashcards: answer });
   } catch (err) {
-    console.error("Error from OpenAI:", err);
-    res.status(500).json({ error: "Failed to generate flashcards" });
+    console.error("Server Error:", err.message);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 }
