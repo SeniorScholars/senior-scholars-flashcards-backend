@@ -1,42 +1,50 @@
 import OpenAI from "openai";
+import pdfParse from "pdf-parse";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+import formidable from "formidable";
+import fs from "fs";
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Only POST requests allowed" });
+    return res.status(405).json({ error: "Only POST allowed" });
   }
 
-  const { prompt } = req.body;
+  const form = new formidable.IncomingForm();
 
-  if (!prompt || typeof prompt !== "string") {
-    return res.status(400).json({ error: "Missing or invalid prompt." });
-  }
+  form.parse(req, async function (err, fields, files) {
+    if (err) return res.status(500).json({ error: "Error parsing file." });
 
-  try {
+    const file = files.pdf;
+    if (!file) return res.status(400).json({ error: "No PDF uploaded." });
+
+    const buffer = fs.readFileSync(file[0].filepath);
+    const pdfData = await pdfParse(buffer);
+
+    const promptText = pdfData.text.slice(0, 2000); // Truncate long files
+
     const response = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "user",
-          content: `Create 5 flashcards on the topic "${prompt}". Format like:\n\nQ: Question\nA: Answer`,
-        },
-      ],
+      messages: [{
+        role: "user",
+        content: `Create 5 flashcards from the following text:\n\n${promptText}`,
+      }],
       temperature: 0.7,
     });
 
-    const flashcards = response.choices?.[0]?.message?.content;
+    const result = response.choices?.[0]?.message?.content;
 
-    if (!flashcards) {
-      return res.status(500).json({ error: "No flashcards returned from OpenAI." });
-    }
+    if (!result) return res.status(500).json({ error: "No response from OpenAI." });
 
-    res.status(200).json({ flashcards });
-
-  } catch (error) {
-    console.error("Server Error:", error.message);
-    res.status(500).json({ error: "Internal Server Error: " + error.message });
-  }
+    return res.status(200).json({ flashcards: result });
+  });
 }
