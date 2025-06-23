@@ -23,21 +23,13 @@ export default async function handler(req, res) {
       messages: [
         {
           role: 'user',
-          content: `Generate exactly 10 flashcards on the topic "${prompt}".
-Each flashcard must contain:
-- A clear question
-- A detailed answer with 3 to 4 sentences
-Format your output exactly like this:
-1.
-Q: What is ...?
-A: Answer in detail.
+          const prompt = `Generate 10 flashcards for the topic "${prompt}". 
+Each flashcard should be in this format:
 
-2.
-Q: What is ...?
+Q: ...
 A: ...
 
-Continue until 10 flashcards are complete.
-ONLY return the flashcards, nothing else.`,
+Give detailed answers (3–4 sentences). Only return the flashcards in numbered order from 1 to 10.`;
         },
       ],
     });
