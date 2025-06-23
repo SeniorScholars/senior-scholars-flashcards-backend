@@ -1,6 +1,9 @@
 {
+  "name": "senior-scholars-flashcards-backend",
   "dependencies": {
-    "openai": "^4.0.0",
+    "formidable": "^3.5.0",
+    "fs": "^0.0.1-security",
+    "openai": "^4.25.1",
     "pdf-parse": "^1.1.1"
   }
 }
