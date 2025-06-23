@@ -39,18 +39,17 @@ export default async function handler(req, res) {
       const dataBuffer = fs.readFileSync(uploadedFile.filepath);
       const pdfData = await pdfParse(dataBuffer);
 
-      content: `From the following text, generate exactly 10 flashcards.
-Each should have:
-- A clear question
-- A detailed answer (3 to 4 sentences)
+      const prompt = `Generate 10 flashcards from the following PDF text. 
+Each flashcard should include a clear question and a detailed answer (3–4 sentences).
 
 Format:
 1.
 Q: ...
 A: ...
 
-Only return the flashcards. Text to extract from:
+Only return the flashcards from 1 to 10.
 
+Text:
 ${pdfData.text}`;
 
       const completion = await openai.chat.completions.create({
