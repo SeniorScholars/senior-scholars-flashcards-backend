@@ -5,7 +5,6 @@ const openai = new OpenAI({
 });
 
 export default async function handler(req, res) {
-  // — CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -19,21 +18,24 @@ export default async function handler(req, res) {
   try {
     const response = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
+      max_tokens: 1500,
+      temperature: 0.7,
       messages: [
         {
           role: 'user',
-          content: `Create 10 detailed flashcards on the topic "${prompt}". Each flashcard should have a clear question and a 2-3 sentence informative answer.
-
-Format strictly as:
-Q: ...
-A: ...`,
+          content: `Generate 10 flashcards on the topic "${prompt}". 
+Each flashcard must be detailed, with:
+- A well-formed question.
+- A detailed answer of at least 3-4 sentences.
+Format like this:
+Q: [Question here]
+A: [Answer here]`,
         },
       ],
-      temperature: 0.7,
     });
 
     const flashcards = response.choices[0]?.message?.content;
-    if (!flashcards) throw new Error('No content in response');
+    if (!flashcards) throw new Error('No content returned from OpenAI.');
     res.status(200).json({ flashcards });
   } catch (err) {
     console.error('ERROR:', err);
