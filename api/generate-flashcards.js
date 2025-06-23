@@ -19,9 +19,19 @@ export default async function handler(req, res) {
   try {
     const response = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: `Create 5 flashcards on the topic "${prompt}". Format:\nQ: ...\nA: ...` }],
+      messages: [
+        {
+          role: 'user',
+          content: `Create 10 detailed flashcards on the topic "${prompt}". Each flashcard should have a clear question and a 2-3 sentence informative answer.
+
+Format strictly as:
+Q: ...
+A: ...`,
+        },
+      ],
       temperature: 0.7,
     });
+
     const flashcards = response.choices[0]?.message?.content;
     if (!flashcards) throw new Error('No content in response');
     res.status(200).json({ flashcards });
