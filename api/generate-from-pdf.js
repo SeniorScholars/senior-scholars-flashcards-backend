@@ -14,19 +14,13 @@ const openai = new OpenAI({
 });
 
 export default async function handler(req, res) {
-  // ✅ Allow CORS
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  // ✅ CORS HEADERS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // ✅ Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Only POST requests allowed' });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Only POST requests allowed' });
 
   const form = new formidable.IncomingForm({ keepExtensions: true });
 
@@ -45,6 +39,7 @@ export default async function handler(req, res) {
     try {
       const dataBuffer = fs.readFileSync(uploadedFile.filepath);
       const pdfData = await pdfParse(dataBuffer);
+
       const prompt = `Create 5 flashcards from the following PDF content:\n\n${pdfData.text}\n\nFormat:\nQ: ...\nA: ...`;
 
       const completion = await openai.chat.completions.create({
