@@ -14,10 +14,9 @@ const openai = new OpenAI({
 });
 
 export default async function handler(req, res) {
-  // ✅ CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Only POST requests allowed' });
@@ -40,17 +39,19 @@ export default async function handler(req, res) {
       const dataBuffer = fs.readFileSync(uploadedFile.filepath);
       const pdfData = await pdfParse(dataBuffer);
 
-      const prompt = `Create 10 detailed flashcards from the following content. Each flashcard should contain a clear question and a 2-3 sentence informative answer.
+      const prompt = `Generate 10 detailed flashcards from this PDF content.
+Each answer should be at least 3-4 sentences long.
+Use the format:
+Q: [question]
+A: [answer]
 
-PDF Content:
-${pdfData.text}
-
-Format:
-Q: ...
-A: ...`;
+Text:
+${pdfData.text}`;
 
       const completion = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
+        max_tokens: 2000,
+        temperature: 0.7,
         messages: [{ role: 'user', content: prompt }],
       });
 
