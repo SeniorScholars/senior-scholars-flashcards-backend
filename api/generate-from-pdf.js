@@ -1,11 +1,7 @@
-const multiparty = require('multiparty');
-const fs = require('fs');
-const pdfParse = require('pdf-parse');
-const OpenAI = require('openai');
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import formidable from 'formidable';
+import fs from 'fs';
+import pdfParse from 'pdf-parse';
+import OpenAI from 'openai';
 
 export const config = {
   api: {
@@ -13,8 +9,12 @@ export const config = {
   },
 };
 
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 export default async function handler(req, res) {
-  // ✅ CORS
+  // ✅ CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -22,7 +22,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Only POST requests allowed' });
 
-  const form = new multiparty.Form();
+  const form = new formidable.IncomingForm({ keepExtensions: true });
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
@@ -30,17 +30,24 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Failed to parse form.' });
     }
 
-    const uploadedFile = files.pdf?.[0];
+    const uploadedFile = files.pdf?.[0] || files.pdf;
     if (!uploadedFile) {
       console.error("❌ No file found in 'pdf' field.");
       return res.status(400).json({ error: 'PDF upload failed.' });
     }
 
     try {
-      const dataBuffer = fs.readFileSync(uploadedFile.path);
+      const dataBuffer = fs.readFileSync(uploadedFile.filepath);
       const pdfData = await pdfParse(dataBuffer);
 
-      const prompt = `Create 5 flashcards from the following PDF content:\n\n${pdfData.text}\n\nFormat:\nQ: ...\nA: ...`;
+      const prompt = `Create 10 detailed flashcards from the following content. Each flashcard should contain a clear question and a 2-3 sentence informative answer.
+
+PDF Content:
+${pdfData.text}
+
+Format:
+Q: ...
+A: ...`;
 
       const completion = await openai.chat.completions.create({
         model: 'gpt-3.5-turbo',
