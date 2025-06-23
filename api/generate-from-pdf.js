@@ -5,40 +5,41 @@ import OpenAI from 'openai';
 
 export const config = {
   api: {
-    bodyParser: false, // required for file uploads
+    bodyParser: false,
   },
 };
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // do NOT hardcode
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export default async function handler(req, res) {
+  // ✅ Allow CORS
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  // ✅ Respond to preflight CORS check
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Only POST requests allowed' });
   }
 
   const form = new formidable.IncomingForm({ keepExtensions: true });
 
-  console.log("🟡 Starting form parsing...");
-
   form.parse(req, async (err, fields, files) => {
     if (err) {
-      console.error("❌ Formidable parse error:", err);
-      return res.status(400).json({ error: 'Failed to parse form data.' });
+      console.error("❌ Formidable error:", err);
+      return res.status(400).json({ error: 'Failed to parse form' });
     }
 
-    console.log("✅ Form parsed");
-    console.log("📁 Files:", files);
-
-    const uploadedFile = Array.isArray(files.pdf) ? files.pdf[0] : files.pdf;
-
-    if (!uploadedFile || !uploadedFile.filepath) {
-      console.error("❌ No valid PDF file found.");
+    const uploadedFile = files.pdf?.[0] || files.pdf;
+    if (!uploadedFile) {
       return res.status(400).json({ error: 'PDF upload failed.' });
     }
-
-    console.log("📄 PDF uploaded:", uploadedFile.originalFilename || uploadedFile.filepath);
 
     try {
       const dataBuffer = fs.readFileSync(uploadedFile.filepath);
@@ -51,12 +52,7 @@ export default async function handler(req, res) {
         messages: [{ role: 'user', content: prompt }],
       });
 
-      const flashcards = completion.choices[0]?.message?.content || null;
-
-      if (!flashcards) {
-        throw new Error("OpenAI returned empty content.");
-      }
-
+      const flashcards = completion.choices[0].message.content;
       return res.status(200).json({ flashcards });
     } catch (error) {
       console.error("❌ PDF processing error:", error.message);
